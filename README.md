@@ -40,8 +40,8 @@ from lilliput.text import cstring
 class Example(Structure):
     word: int = typedef(uint8)
 
-    # the commented field will trigger incompatible type warning in mypy
-    # mistyped_word: bytes = typedef(uint8)
+    # this commented out field will trigger mypy warning
+    # mistyped_word: bytes = typedef(uint8)  # Incompatible types in assignment (expression has type "int", variable has type "bytes")
 
     name: str = typedef(cstring)
 
