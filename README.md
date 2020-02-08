@@ -4,7 +4,7 @@ Declarative binary structure definitions for Python
 ## Usage
 
 ### Custom unpacker
-```
+``` python
 import io
 from dataclasses import dataclass
 from typing import IO
@@ -28,7 +28,7 @@ b'\x00\x01\x02\x03\x04'
 [Another Example](lilliput/word.py)
 
 ### Dataclass Complex Stucture
-```
+``` python
 import io
 
 from lilliput.meta import typedef
@@ -41,7 +41,8 @@ class Example(Structure):
     word: int = typedef(uint8)
 
     # the commented field will trigger incompatible type warning in mypy
-    # mistyped_word: bytes = typedef(uint8)  
+    # mistyped_word: bytes = typedef(uint8)
+
     name: str = typedef(cstring)
 
 """
@@ -52,7 +53,7 @@ Example(word=1, name='abc')
 [Another Example](examples/structured.py)
 
 ### Functional API unpacker
-```
+``` python
 import io
 from dataclasses import dataclass
 from typing import IO
@@ -64,12 +65,7 @@ def simple_raw_bytes(size: int) -> MetaUnpacker[bytes]:
         return data
     def unpack(stream: IO[bytes]) -> bytes:
         return stream.read(size)
-    return make_unpacker(
-        'SimpleRawBytes',
-        pack=pack,
-        unpack=unpack,
-        data={'size': size}
-    )
+    return make_unpacker('SimpleRawBytes', pack=pack, unpack=unpack, data={'size': size})
 
 """
 >>> simple_raw_bytes(5).unpack(io.BytesIO(b'\x00\x01\x02\x03\x04'))
