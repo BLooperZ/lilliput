@@ -9,8 +9,8 @@ from lilliput.raw import RawBytes, consume
 
 data = (
         b'\x00\x02\x00\x00\x00\x00'
-        + b'\00' * (10)
-        + b'lalalalaafdddddddd\x00'
+        + b'\00' * (5)
+        + b'cstring\x00'
     ) * 3 + b'blah'
 
 # Dataclass API example
@@ -20,7 +20,7 @@ class ExampleData(Structure):
     version: int = typedef(uint16le)
     nframes: int = typedef(uint16le)
     dummy: int = typedef(uint16le)
-    palette: bytes = typedef(RawBytes(10))
+    palette: bytes = typedef(RawBytes(5))
     custom: str = typedef(cstring)
     ignored_constant: int = 8
     ignored_factory: tuple = field(default_factory=tuple)
@@ -35,7 +35,7 @@ ex = Nested.unpack(io.BytesIO(data))
 
 print(ex)
 """
-Nested(data1=ExampleData(version=512, nframes=0, dummy=0, palette=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', custom='lalalalaafdddddddd', ignored_constant=8, ignored_factory=()), data2=ExampleData(version=512, nframes=0, dummy=0, palette=b'\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00', custom='lalalalaafdddddddd', ignored_constant=8, ignored_factory=()), rest=b'\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00lalalalaafdddddddd\x00blah')
+Nested(data1=ExampleData(version=512, nframes=0, dummy=0, palette=b'\x00\x00\x00\x00\x00', custom='cstring', ignored_constant=8, ignored_factory=()), data2=ExampleData(version=512, nframes=0, dummy=0, palette=b'\x00\x00\x00\x00\x00', custom='cstring', ignored_constant=8, ignored_factory=()), rest=b'\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00cstring\x00blah')
 """
 assert ex.data1.version == 512, ex.data1.version
 
