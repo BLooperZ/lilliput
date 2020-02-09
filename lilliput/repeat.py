@@ -1,13 +1,14 @@
 from dataclasses import dataclass
-from typing import IO, Optional, Sequence, Type, TypeVar
+from typing import IO, Optional, Sequence, Type, TypeVar, Union
 
 from .meta import MetaUnpacker
+from .structure import Structure
 
 T = TypeVar('T')
 
 @dataclass(frozen=True)
 class BoundRepeat(MetaUnpacker[Sequence[T]]):
-    entry: MetaUnpacker[T]
+    entry: Union[MetaUnpacker[T], Type[Structure]]
     bound: int
 
     def unpack(self, stream: IO[bytes]) -> Sequence[T]:
