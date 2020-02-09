@@ -2,26 +2,22 @@ import operator
 from dataclasses import dataclass, field
 from functools import partial
 from itertools import chain, takewhile
-from typing import IO, Type
+from typing import IO, Optional, Type
 
 from .meta import MetaUnpacker, make_unpacker
-from .raw import RawBytes
+from .raw import RawBytes, safe_read
 from .word import uint8
 
-def safe_readcstr(stream: IO[bytes], sentinel: bytes = b'\xab') -> str:
-    try:
-        bound_read = chain(iter(partial(stream.read, 1), b''), [sentinel])
-        res = b''.join(takewhile(partial(operator.ne, b'\00'), bound_read))
-        return res.decode()
-    except UnicodeDecodeError:
-        raise ValueError('reached EOF before null-termination')
+def safe_readcstr(stream: IO[bytes]) -> bytes:
+    bound_read = iter(partial(safe_read, stream, 1), b'')
+    return b''.join(takewhile(partial(operator.ne, b'\00'), bound_read))
 
 @dataclass(frozen=True)
 class NullTerminatedString(MetaUnpacker[str]):
     encoding: str = 'utf-8'
 
     def unpack(self, stream: IO[bytes]) -> str:
-        return safe_readcstr(stream).encode('utf-8').decode(self.encoding)
+        return safe_readcstr(stream).decode(self.encoding)
 
     def pack(self, data: str) -> bytes:
         return data.encode(self.encoding) + b'\0'

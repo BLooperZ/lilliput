@@ -9,20 +9,23 @@ class UnexpectedBufferSize(ValueError):
         self.expected = expected
         self.given = given
 
+def validate_buffer_size(data: bytes, size: Optional[int] = None):
+    if size and len(data) != size:
+        raise UnexpectedBufferSize(size, len(data))
+    return data
+
+def safe_read(stream: IO[bytes], size: Optional[int] = None):
+    # False alarm for type error, `read` method of IO accepts `None` as well.
+    return validate_buffer_size(stream.read(size), size)  # type: ignore
+
 @dataclass(frozen=True)
 class RawBytes(MetaUnpacker[bytes]):
     size: Optional[int] = None
 
     def unpack(self, stream: IO[bytes]) -> bytes:
-        # False alarm for type error, `read` method of IO accepts `None` as well.
-        data = stream.read(self.size)  # type: ignore
-        if self.size and len(data) != self.size:
-            raise UnexpectedBufferSize(self.size, len(data))
-        return data
+        return safe_read(stream, self.size)
 
     def pack(self, data: bytes) -> bytes:
-        if self.size and len(data) != self.size:
-            raise UnexpectedBufferSize(self.size, len(data))
-        return data
+        return validate_buffer_size(data, self.size)
 
 consume = RawBytes()
