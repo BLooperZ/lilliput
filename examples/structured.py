@@ -1,11 +1,13 @@
 import io
 from dataclasses import field
+from typing import Sequence
 
 from lilliput.meta import typedef
 from lilliput.structure import Structure, unpacker
-from lilliput.word import uint16le, ByteOrder
+from lilliput.word import uint16le, uint8, ByteOrder
 from lilliput.text import cstring
 from lilliput.raw import RawBytes, consume
+from lilliput.sequence import BoundRepeat
 
 data = (
         b'\x00\x02\x00\x00\x00\x00'
@@ -19,7 +21,7 @@ data = (
 class ExampleData(Structure):
     word1: int = typedef(uint16le)
     word2: int = typedef(uint16le)
-    word3: int = typedef(uint16le)
+    word3: Sequence[int] = typedef(BoundRepeat(uint8, 2))
     raw_data: bytes = typedef(RawBytes(5))
     name: str = typedef(cstring)
     ignored_constant: int = 8
@@ -35,7 +37,7 @@ ex = Nested.unpack(io.BytesIO(data))
 
 print(ex)
 """
-Nested(data1=ExampleData(word1=512, word2=0, word3=0, raw_data=b'\x00\x00\x00\x00\x00', name='cstring', ignored_constant=8, ignored_factory=()), data2=ExampleData(word1=512, word2=0, word3=0, raw_data=b'\x00\x00\x00\x00\x00', name='cstring', ignored_constant=8, ignored_factory=()), rest=b'\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00cstring\x00blah')
+Nested(data1=ExampleData(word1=512, word2=0, word3=(0, 0), raw_data=b'\x00\x00\x00\x00\x00', name='cstring', ignored_constant=8, ignored_factory=()), data2=ExampleData(word1=512, word2=0, word3=(0, 0), raw_data=b'\x00\x00\x00\x00\x00', name='cstring', ignored_constant=8, ignored_factory=()), rest=b'\x00\x02\x00\x00\x00\x00\x00\x00\x00\x00\x00cstring\x00blah')
 """
 assert ex.data1.word1 == 512, ex.data1.word1
 
