@@ -25,12 +25,14 @@ class Structure(abc.Sequence, MetaUnpacker):
     def __iter__(self):
         return (getattr(self, f.name) for f in fields(self))
 
-    # make type checkers aware of pack/unpack
-    @classmethod
-    def pack(cls, data) -> bytes: ...
+    # # make type checkers aware of pack/unpack
+    # @classmethod
+    # def pack(cls, data) -> bytes:
+    #     return SequenceUnpacker(cls).pack(data)
 
-    @classmethod
-    def unpack(cls, stream: IO[bytes]): ...
+    # @classmethod
+    # def unpack(cls, stream: IO[bytes]):
+    #     return SequenceUnpacker(cls).unpack(stream)
 
 NT = TypeVar('NT', bound=Structure)
 
@@ -50,33 +52,22 @@ class SkipUnpacker(MetaUnpacker[Any]):
 
 @dataclass(frozen=True)
 class SequenceUnpacker(MetaUnpacker[NT]):
-    nt: Type[NT]
+    structure: Type[NT]
     _readers: Sequence[MetaUnpacker] = field(init=False, repr=False)
 
-    def __post_init__(self):
-        super().__setattr__('_readers', tuple(
-            v.metadata.get('unpacker', SkipUnpacker(v))
-            for v in fields(self.nt)
-        ))
+    def __post_init__(self): 
+        super().__setattr__(
+            '_readers', tuple(
+                v.metadata.get('unpacker', SkipUnpacker(v))
+                for v in fields(self.structure)
+            )
+        )
 
     def unpack(self, stream: IO[bytes]) -> NT:
-        return self.nt(*(
+        return self.structure(*(
             reader.unpack(stream) for reader in self._readers
         ))
 
     def pack(self, inst: NT) -> bytes:
         data: Iterator[Tuple[Any, MetaUnpacker[Any]]] = zip(inst, self._readers)
         return b''.join(reader.pack(value) for value, reader in data)
-
-# allow using given class as unpacker and in type annotations
-def unpacker(cls: Type[NT]):
-    dcls = dataclass(frozen=True, order=True)(cls)
-    inst = SequenceUnpacker(dcls)
-
-    return type(
-        dcls.__name__, (dcls, MetaUnpacker),
-        {
-            'pack': inst.pack,
-            'unpack': inst.unpack
-        }
-    )

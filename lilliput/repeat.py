@@ -8,7 +8,7 @@ T = TypeVar('T')
 
 @dataclass(frozen=True)
 class BoundRepeat(MetaUnpacker[Sequence[T]]):
-    entry: Union[MetaUnpacker[T], Type[Structure]]
+    entry: MetaUnpacker[T]
     bound: int
 
     def unpack(self, stream: IO[bytes]) -> Sequence[T]:
