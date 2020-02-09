@@ -45,13 +45,13 @@ class FixedSizeString(MetaUnpacker[str]):
 
 @dataclass(frozen=True)
 class LengthPrefixedString(MetaUnpacker[str]):
-    length: MetaUnpacker[int] = uint8
+    prefixer: MetaUnpacker[int] = uint8
     encoding: str = 'utf-8'
 
     def unpack(self, stream: IO[bytes]) -> str:
-        return FixedSizeString(self.length.unpack(stream), self.encoding).unpack(stream)
+        return FixedSizeString(self.prefixer.unpack(stream), self.encoding).unpack(stream)
 
     def pack(self, data: str) -> bytes:
-        return self.length.pack(len(data)) + data.encode(self.encoding)
+        return self.prefixer.pack(len(data)) + data.encode(self.encoding)
 
 pstring = LengthPrefixedString(uint8, encoding='utf-8')
