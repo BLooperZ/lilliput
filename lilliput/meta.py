@@ -30,7 +30,7 @@ class MetaNamespace(Generic[T]):
 
 @dataclass(frozen=True)
 class NamespaceUnpack(MetaUnpacker[T]):
-    namespace: MetaNamespace[T]
+    namespace: MetaNamespace[T] = field(repr=False)
 
     def __post_init__(self):
         for key, value in asdict(self.namespace).items():

@@ -25,26 +25,31 @@ class Structure(abc.Sequence):
 
 NT = TypeVar('NT', bound=Structure)
 
-@dataclass(frozen=True)
-class SkipUnpacker(MetaUnpacker[Any]):
-    field: Any
+def skip_field(
+        field: Any
+) -> MetaUnpacker[Any]:
 
-    def unpack(self, stream: IO[bytes]) -> Any:
-        if self.field.default == MISSING:
-            if self.field.default_factory == MISSING:
-                raise TypeError(f'missing required argument: {repr(self.field.name)}')
-            return self.field.default_factory()
-        return self.field.default
+    _default = field.default
+    _factory = field.default_factory
 
-    def pack(self, data: Any) -> bytes:
+    def unpack(stream: IO[bytes]) -> Any:
+        if _default != MISSING:
+            return _default
+        if _factory != MISSING:
+            return _factory()
+        raise TypeError(f'missing required argument: {repr(field.name)}')
+
+    def pack(data: Any) -> bytes:
         return b''
+
+    return namespace(pack=pack, unpack=unpack)
 
 def sequence_unpacker(
         structure: Type[NT]
 ) -> MetaUnpacker[NT]:
 
     _readers = tuple(
-        v.metadata.get('unpacker', SkipUnpacker(v)) for v in fields(structure)
+        v.metadata.get('unpacker', skip_field(v)) for v in fields(structure)
     )
 
     def unpack(stream: IO[bytes]) -> NT:
