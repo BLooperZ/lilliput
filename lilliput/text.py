@@ -4,7 +4,7 @@ from functools import partial
 from itertools import chain, takewhile
 from typing import IO, Optional, Type
 
-from .meta import MetaUnpacker, namespace
+from .meta import MetaUnpacker, namespace, fdata
 from .raw import RawBytes
 from .word import uint8
 
@@ -24,6 +24,7 @@ class NullTerminatedString(MetaUnpacker[str]):
 
 cstring = NullTerminatedString('utf-8')
 
+@fdata('FixedSizeString')
 def fixed_size_string(
         size: int,
         encoding: str = 'utf-8'

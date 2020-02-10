@@ -4,13 +4,14 @@ from dataclasses import dataclass, field
 from functools import partial
 from typing import IO
 
-from .meta import namespace, MetaUnpacker
+from .meta import namespace, MetaUnpacker, fdata
 from .raw import RawBytes
 
 class ByteOrder(str, Enum):
     LE = 'little'
     BE = 'big'
 
+@fdata('FixedSizeWord')
 def fixed_size_word(
         size: int,
         byteorder: ByteOrder,
@@ -35,6 +36,8 @@ signed_be = partial(fixed_size_word, byteorder=ByteOrder.BE, signed=True)
 
 uint8 = unsigned_le(1)
 int8 = signed_le(1)
+
+print(int8)
 
 uint16le = unsigned_le(2)
 uint24le = unsigned_le(3)

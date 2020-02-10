@@ -1,4 +1,5 @@
-from dataclasses import dataclass, field, asdict
+import inspect
+from dataclasses import dataclass, field, asdict, make_dataclass
 from typing import (
     Any,
     Callable,
@@ -41,6 +42,24 @@ def namespace(
         pack: Callable[[T], bytes]
 ) -> MetaUnpacker[T]:
     return NamespaceUnpack(MetaNamespace(unpack=unpack, pack=pack))
+
+def make_field(name, p):
+    annotation = p.annotation != inspect._empty and p.annotation
+    default = p.default != inspect._empty and field(default=p.default)
+    return (name, annotation or Any, default or None)
+
+def fdata(name: str):
+    def decorator(func: Callable[..., MetaUnpacker[T]]):
+        def inner(*args, **kwargs):
+            namespace = func(*args, **kwargs).namespace
+            sig = inspect.signature(func).parameters
+            return make_dataclass(
+                name, bases=(NamespaceUnpack,),
+                fields=(make_field(name, p) for name, p in sig.items()),
+                frozen=True
+            )(namespace, *args, **kwargs)
+        return inner
+    return decorator
 
 def typedef(
         reader: MetaUnpacker[T], *,
