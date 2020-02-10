@@ -14,16 +14,13 @@ def validate_buffer_size(data: bytes, size: Optional[int] = None):
         raise UnexpectedBufferSize(size, len(data))
     return data
 
-def safe_read(stream: IO[bytes], size: Optional[int] = None):
-    # False alarm for type error, `read` method of IO accepts `None` as well.
-    return validate_buffer_size(stream.read(size), size)  # type: ignore
-
 @dataclass(frozen=True)
 class RawBytes(MetaUnpacker[bytes]):
     size: Optional[int] = None
 
     def unpack(self, stream: IO[bytes]) -> bytes:
-        return safe_read(stream, self.size)
+        # False alarm for type error, `read` method of IO accepts `None` as well.
+        return validate_buffer_size(stream.read(self.size), self.size)  # type: ignore
 
     def pack(self, data: bytes) -> bytes:
         return validate_buffer_size(data, self.size)

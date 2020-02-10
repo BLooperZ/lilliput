@@ -42,7 +42,8 @@ class ExampleData2(Structure):
 class ExampleData3(ExampleData2):
     word2: int = typedef(uint16le)
 
-print(ExampleData3(word1=9, word2=10))
+word1, word2 = ExampleData3(word1=9, word2=10)
+print(word1, word2)
 
 ex = SequenceUnpacker(Nested).unpack(io.BytesIO(data))
 

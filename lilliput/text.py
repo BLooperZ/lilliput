@@ -5,11 +5,11 @@ from itertools import chain, takewhile
 from typing import IO, Optional, Type
 
 from .meta import MetaUnpacker, make_unpacker
-from .raw import RawBytes, safe_read
+from .raw import RawBytes
 from .word import uint8
 
 def safe_readcstr(stream: IO[bytes]) -> bytes:
-    bound_read = iter(partial(safe_read, stream, 1), b'')
+    bound_read = iter(partial(RawBytes(1).unpack, stream), b'')
     return b''.join(takewhile(partial(operator.ne, b'\00'), bound_read))
 
 @dataclass(frozen=True)
