@@ -4,19 +4,18 @@ from dataclasses import dataclass, field
 from functools import partial
 from typing import IO
 
-from .meta import MetaNamespace, namespace
+from .meta import namespace, MetaUnpacker
 from .raw import RawBytes
 
 class ByteOrder(str, Enum):
     LE = 'little'
     BE = 'big'
 
-@namespace
 def fixed_size_word(
         size: int,
         byteorder: ByteOrder,
         signed: bool
-) -> MetaNamespace[int]:
+) -> MetaUnpacker[int]:
 
     _reader = RawBytes(size)
 
@@ -26,7 +25,7 @@ def fixed_size_word(
     def pack(num: int) -> bytes:
         return num.to_bytes(size, byteorder=byteorder, signed=signed)
 
-    return MetaNamespace(pack=pack, unpack=unpack)
+    return namespace(pack=pack, unpack=unpack)
 
 unsigned_le = partial(fixed_size_word, byteorder=ByteOrder.LE, signed=False)
 signed_le = partial(fixed_size_word, byteorder=ByteOrder.LE, signed=True)

@@ -4,7 +4,7 @@ from functools import partial
 from itertools import chain, takewhile
 from typing import IO, Optional, Type
 
-from .meta import MetaUnpacker, MetaNamespace, namespace
+from .meta import MetaUnpacker, namespace
 from .raw import RawBytes
 from .word import uint8
 
@@ -24,11 +24,10 @@ class NullTerminatedString(MetaUnpacker[str]):
 
 cstring = NullTerminatedString('utf-8')
 
-@namespace
 def fixed_size_string(
         size: int,
         encoding: str = 'utf-8'
-) -> MetaNamespace[str]:
+) -> MetaUnpacker[str]:
 
     _reader = RawBytes(size)
 
@@ -38,7 +37,7 @@ def fixed_size_string(
     def pack(data: str) -> bytes:
         return _reader.pack(data.encode(encoding))
 
-    return MetaNamespace(pack=pack, unpack=unpack)
+    return namespace(pack=pack, unpack=unpack)
 
 @dataclass(frozen=True)
 class LengthPrefixedString(MetaUnpacker[str]):

@@ -9,7 +9,7 @@ from typing import (
     TypeVar
 )
 
-from .meta import MetaUnpacker, MetaNamespace, namespace
+from .meta import MetaUnpacker, namespace
 
 # https://stackoverflow.com/questions/44287623/a-way-to-subclass-namedtuple-for-purposes-of-typechecking
 class Structure(abc.Sequence):
@@ -39,10 +39,9 @@ class SkipUnpacker(MetaUnpacker[Any]):
     def pack(self, data: Any) -> bytes:
         return b''
 
-@namespace
 def sequence_unpacker(
         structure: Type[NT]
-) -> MetaNamespace[NT]:
+) -> MetaUnpacker[NT]:
 
     _readers = tuple(
         v.metadata.get('unpacker', SkipUnpacker(v)) for v in fields(structure)
@@ -55,4 +54,4 @@ def sequence_unpacker(
         data: Iterator[Tuple[Any, MetaUnpacker[Any]]] = zip(inst, _readers)
         return b''.join(reader.pack(value) for value, reader in data)
 
-    return MetaNamespace(pack=pack, unpack=unpack)
+    return namespace(pack=pack, unpack=unpack)

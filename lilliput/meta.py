@@ -36,10 +36,11 @@ class NamespaceUnpack(MetaUnpacker[T]):
         for key, value in asdict(self.namespace).items():
             super().__setattr__(key, value)
 
-def namespace(func: Callable[..., MetaNamespace[T]]):
-    def inner(*args, **kwargs) -> MetaUnpacker[T]:
-        return NamespaceUnpack(func(*args, **kwargs))
-    return inner
+def namespace(
+        unpack: Callable[[IO[bytes]], T],
+        pack: Callable[[T], bytes]
+) -> MetaUnpacker[T]:
+    return NamespaceUnpack(MetaNamespace(unpack=unpack, pack=pack))
 
 def typedef(
         reader: MetaUnpacker[T], *,
