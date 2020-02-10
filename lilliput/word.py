@@ -1,36 +1,38 @@
+import io
 from enum import Enum
 from dataclasses import dataclass, field
 from functools import partial
 from typing import IO
 
-from .meta import MetaUnpacker
+from .meta import MetaNamespace, namespace
 from .raw import RawBytes
 
 class ByteOrder(str, Enum):
     LE = 'little'
     BE = 'big'
 
-@dataclass(frozen=True)
-class FixedSizeWord(MetaUnpacker[int]):
-    size: int
-    byteorder: ByteOrder = ByteOrder.LE
-    signed: bool = False
-    _reader: MetaUnpacker[bytes] = field(init=False, repr=False)
+@namespace
+def fixed_size_word(
+        size: int,
+        byteorder: ByteOrder,
+        signed: bool
+) -> MetaNamespace[int]:
 
-    def __post_init__(self):
-        super().__setattr__('_reader', RawBytes(self.size))
+    _reader = RawBytes(size)
 
-    def unpack(self, stream: IO[bytes]) -> int:
-        return int.from_bytes(self._reader.unpack(stream), byteorder=self.byteorder, signed=self.signed)
+    def unpack(stream: IO[bytes]) -> int:
+        return int.from_bytes(_reader.unpack(stream), byteorder=byteorder, signed=signed)
 
-    def pack(self, num: int) -> bytes:
-        return num.to_bytes(self.size, byteorder=self.byteorder, signed=self.signed)
+    def pack(num: int) -> bytes:
+        return num.to_bytes(size, byteorder=byteorder, signed=signed)
 
-unsigned_le = partial(FixedSizeWord, byteorder=ByteOrder.LE, signed=False)
-signed_le = partial(FixedSizeWord, byteorder=ByteOrder.LE, signed=True)
+    return MetaNamespace(pack=pack, unpack=unpack)
 
-unsigned_be = partial(FixedSizeWord, byteorder=ByteOrder.BE, signed=False)
-signed_be = partial(FixedSizeWord, byteorder=ByteOrder.BE, signed=True)
+unsigned_le = partial(fixed_size_word, byteorder=ByteOrder.LE, signed=False)
+signed_le = partial(fixed_size_word, byteorder=ByteOrder.LE, signed=True)
+
+unsigned_be = partial(fixed_size_word, byteorder=ByteOrder.BE, signed=False)
+signed_be = partial(fixed_size_word, byteorder=ByteOrder.BE, signed=True)
 
 uint8 = unsigned_le(1)
 int8 = signed_le(1)

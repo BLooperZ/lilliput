@@ -1,20 +1,18 @@
 from collections import abc
-from dataclasses import dataclass, field, fields, _MISSING_TYPE
+from dataclasses import dataclass, field, fields, MISSING
 from typing import (
     Any,
     IO,
     Iterator,
-    NamedTuple,
-    Sequence,
     Tuple,
     Type,
     TypeVar
 )
 
-from .meta import MetaUnpacker
+from .meta import MetaUnpacker, MetaNamespace, namespace
 
 # https://stackoverflow.com/questions/44287623/a-way-to-subclass-namedtuple-for-purposes-of-typechecking
-class Structure(abc.Sequence, MetaUnpacker):
+class Structure(abc.Sequence):
     # make a dataclass tuple-like by accessing fields by index
     def __getitem__(self, i):
         return getattr(self, fields(self)[i].name)
@@ -25,15 +23,6 @@ class Structure(abc.Sequence, MetaUnpacker):
     def __iter__(self):
         return (getattr(self, f.name) for f in fields(self))
 
-    # # make type checkers aware of pack/unpack
-    # @classmethod
-    # def pack(cls, data) -> bytes:
-    #     return SequenceUnpacker(cls).pack(data)
-
-    # @classmethod
-    # def unpack(cls, stream: IO[bytes]):
-    #     return SequenceUnpacker(cls).unpack(stream)
-
 NT = TypeVar('NT', bound=Structure)
 
 @dataclass(frozen=True)
@@ -41,8 +30,8 @@ class SkipUnpacker(MetaUnpacker[Any]):
     field: Any
 
     def unpack(self, stream: IO[bytes]) -> Any:
-        if isinstance(self.field.default, _MISSING_TYPE):
-            if isinstance(self.field.default_factory, _MISSING_TYPE):
+        if self.field.default == MISSING:
+            if self.field.default_factory == MISSING:
                 raise TypeError(f'missing required argument: {repr(self.field.name)}')
             return self.field.default_factory()
         return self.field.default
@@ -50,24 +39,20 @@ class SkipUnpacker(MetaUnpacker[Any]):
     def pack(self, data: Any) -> bytes:
         return b''
 
-@dataclass(frozen=True)
-class SequenceUnpacker(MetaUnpacker[NT]):
-    structure: Type[NT]
-    _readers: Sequence[MetaUnpacker] = field(init=False, repr=False)
+@namespace
+def sequence_unpacker(
+        structure: Type[NT]
+) -> MetaNamespace[NT]:
 
-    def __post_init__(self): 
-        super().__setattr__(
-            '_readers', tuple(
-                v.metadata.get('unpacker', SkipUnpacker(v))
-                for v in fields(self.structure)
-            )
-        )
+    _readers = tuple(
+        v.metadata.get('unpacker', SkipUnpacker(v)) for v in fields(structure)
+    )
 
-    def unpack(self, stream: IO[bytes]) -> NT:
-        return self.structure(*(
-            reader.unpack(stream) for reader in self._readers
-        ))
+    def unpack(stream: IO[bytes]) -> NT:
+        return structure(*(reader.unpack(stream) for reader in _readers))
 
-    def pack(self, inst: NT) -> bytes:
-        data: Iterator[Tuple[Any, MetaUnpacker[Any]]] = zip(inst, self._readers)
+    def pack(inst: NT) -> bytes:
+        data: Iterator[Tuple[Any, MetaUnpacker[Any]]] = zip(inst, _readers)
         return b''.join(reader.pack(value) for value, reader in data)
+
+    return MetaNamespace(pack=pack, unpack=unpack)

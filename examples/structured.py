@@ -3,7 +3,7 @@ from dataclasses import dataclass, field
 from typing import Sequence
 
 from lilliput.meta import typedef
-from lilliput.structure import Structure, SequenceUnpacker
+from lilliput.structure import Structure, sequence_unpacker
 from lilliput.word import uint16le, uint8, ByteOrder
 from lilliput.text import cstring
 from lilliput.raw import RawBytes, consume
@@ -31,7 +31,7 @@ class ExampleData(Structure):
 # @SequenceUnpacker
 @dataclass(frozen=True, order=True)
 class Nested(Structure):
-    data: Sequence[ExampleData] = typedef(BoundRepeat(SequenceUnpacker(ExampleData), 2))
+    data: Sequence[ExampleData] = typedef(BoundRepeat(sequence_unpacker(ExampleData), 2))
     rest: bytes = typedef(consume)
 
 @dataclass(frozen=True, order=True)
@@ -45,7 +45,7 @@ class ExampleData3(ExampleData2):
 word1, word2 = ExampleData3(word1=9, word2=10)
 print(word1, word2)
 
-ex = SequenceUnpacker(Nested).unpack(io.BytesIO(data))
+ex = sequence_unpacker(Nested).unpack(io.BytesIO(data))
 
 print(ex)
 """
@@ -53,5 +53,5 @@ Nested(data=(ExampleData(word1=512, word2=0, word3=(0, 0), raw_data=b'\x00\x00\x
 """
 assert ex.data[0].word1 == 512, ex.data[0].word1
 
-dump = SequenceUnpacker(Nested).pack(ex)
+dump = sequence_unpacker(Nested).pack(ex)
 assert dump == data, (dump, data)

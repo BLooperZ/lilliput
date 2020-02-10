@@ -1,4 +1,4 @@
-from dataclasses import make_dataclass, field
+from dataclasses import dataclass, field, asdict
 from typing import (
     Any,
     Callable,
@@ -8,7 +8,6 @@ from typing import (
     Optional,
     Type,
     TypeVar,
-    Union
 )
 
 T = TypeVar('T')
@@ -24,28 +23,29 @@ class MetaUnpacker(Generic[T]):
 
     def pack(self, data: T) -> bytes: ...
 
+@dataclass(frozen=True)
+class MetaNamespace(Generic[T]):
+    unpack: Callable[[IO[bytes]], T] = field(repr=False)
+    pack: Callable[[T], bytes] = field(repr=False)
+
+@dataclass(frozen=True)
+class NamespaceUnpack(MetaUnpacker[T]):
+    namespace: MetaNamespace[T]
+
+    def __post_init__(self):
+        for key, value in asdict(self.namespace).items():
+            super().__setattr__(key, value)
+
+def namespace(func: Callable[..., MetaNamespace[T]]):
+    def inner(*args, **kwargs) -> MetaUnpacker[T]:
+        return NamespaceUnpack(func(*args, **kwargs))
+    return inner
+
 def typedef(
-        reader: Union[MetaUnpacker[T], Type[T]], *,
+        reader: MetaUnpacker[T], *,
         metadata: Optional[Mapping[str, Any]] = None,
         **kwargs
 ) -> T:
     metadata = metadata or {}
     # NOTE: can use metadata for unpacker configuration (e.g. alignment, condition)
     return field(metadata=dict(metadata, unpacker=reader), **kwargs)
-
-def make_unpacker(
-        name: str,
-        pack: Callable[[T], bytes],
-        unpack: Callable[[IO[bytes]], T],
-        namespace: Optional[Mapping[str, Any]] = None,
-        data: Optional[Mapping[str, Any]] = None
-) -> MetaUnpacker[T]:
-    data = data or {}
-    namespace = namespace or {}
-
-    return make_dataclass(
-        name, bases=(MetaUnpacker,), 
-        fields=tuple((key, type(value), value) for key, value in data.items()),
-        namespace=dict(namespace, pack=staticmethod(pack), unpack=staticmethod(unpack)),
-        frozen=True
-    )(*data.values())
