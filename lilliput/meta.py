@@ -12,6 +12,7 @@ from typing import (
 )
 
 T = TypeVar('T')
+Returns = Callable[..., T]
 
 class MetaUnpacker(Generic[T]):
     # allow using __init__() from dataclass
@@ -48,16 +49,17 @@ def make_field(name, p):
     default = p.default != inspect._empty and field(default=p.default)
     return (name, annotation or Any, default or None)
 
-def fdata(name: str):
-    def decorator(func: Callable[..., MetaUnpacker[T]]):
-        def inner(*args, **kwargs):
-            namespace = func(*args, **kwargs).namespace
+def fdata(name: str) -> Callable[[Returns[MetaUnpacker[T]]], Returns[MetaUnpacker[T]]]:
+    def decorator(func: Returns[MetaUnpacker[T]]):
+        def inner(*args, **kwargs) -> MetaUnpacker[T]:
+            unp = func(*args, **kwargs)
+            nspace = MetaNamespace(unpack=unp.unpack, pack=unp.pack)
             sig = inspect.signature(func).parameters
             return make_dataclass(
                 name, bases=(NamespaceUnpack,),
                 fields=(make_field(name, p) for name, p in sig.items()),
                 frozen=True
-            )(namespace, *args, **kwargs)
+            )(nspace, *args, **kwargs)
         return inner
     return decorator
 
